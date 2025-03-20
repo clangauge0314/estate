@@ -3,21 +3,33 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -H 0.0.0.0",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
+    "@channel.io/channel-web-sdk-loader": "^2.0.0",
+    "@clerk/localizations": "^3.12.0",
+    "@clerk/nextjs": "^6.12.5",
+    "@prisma/client": "^6.5.0",
+    "axios": "^1.8.3",
+    "csv-parser": "^3.2.0",
+    "fs": "^0.0.1-security",
+    "next": "15.2.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "next": "15.2.2"
+    "react-icons": "^5.5.0",
+    "react-kakao-maps-sdk": "^1.1.27",
+    "redis": "^4.7.0",
+    "sonner": "^2.0.1"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "15.2.2",
-    "@eslint/eslintrc": "^3"
+    "prisma": "^6.5.0",
+    "tailwindcss": "^4"
   }
 }

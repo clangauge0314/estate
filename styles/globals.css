@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "TheJamsil5Bold";
+  src: url("https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2302_01@1.0/TheJamsil5Bold.woff2")
+    format("woff2");
+  font-weight: 700;
+  font-style: normal;
+}
+
+:root {
+  --background: #f8f9fa;
+  --foreground: #1a1a1a;
+  --primary: #16a34a;
+  --secondary: #d62839;
+}
+
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "TheJamsil5Bold", sans-serif;
+}
+
+.cl-rootBox, .cl-formFieldInput, .cl-button {
+  font-family: 'TheJamsil5Bold', sans-serif !important;
+}
+
+.kakao-map .mapTypeControl {
+  top: 80px !important; 
+}
+
+.kakao-map .zoomControl {
+  top: 120px !important; 
+}

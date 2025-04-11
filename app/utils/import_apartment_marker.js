@@ -21,6 +21,7 @@ async function importApartmentMarkers() {
         complexUniqueId: complexId
           ? complexId.toString().replace(/['"]+/g, "").trim()
           : "",
+        dong: row["행정동"] || "",
         latitude: parseFloat(row["위도"] || row["latitude"] || 0) || 0,
         longitude: parseFloat(row["경도"] || row["longitude"] || 0) || 0,
       };

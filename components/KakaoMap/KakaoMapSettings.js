@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { FaMap, FaMountain, FaCar, FaBiking, FaBuilding, FaVideo } from "react-icons/fa";
-import jinjuJson from "@/app/json/Jinju.json";
+import jinjuFilteredJson from "@/app/json/jinju_filtered.json";
 import { getCCTVs } from "@/app/library/fetchCCTV";
 import cctvImage from "@/app/assets/cctv.webp";
 import { toast } from "sonner";
@@ -19,6 +19,7 @@ const KakaoMapSettings = ({ map, scriptLoad }) => {
   const [loading, setLoading] = useState(false);
   const [clusterer, setClusterer] = useState(null);
   const markersRef = useRef([]);
+  const [selectedDong, setSelectedDong] = useState(null);
 
   useEffect(() => {
     return () => {
@@ -27,12 +28,42 @@ const KakaoMapSettings = ({ map, scriptLoad }) => {
   }, [polygons]);
 
   useEffect(() => {
-    if (activeOverlays.districts && map) {
+    const checkSelectedDong = () => {
+      const storedDong = localStorage.getItem('selectedDong');
+      if (storedDong) {
+        setSelectedDong(storedDong);
+      }
+    };
+
+    checkSelectedDong();
+
+    window.addEventListener('storage', checkSelectedDong);
+    
+    const handleLocalStorageChange = (event) => {
+      if (event && event.detail && event.detail.key === 'selectedDong') {
+        setSelectedDong(event.detail.value);
+      } else {
+        checkSelectedDong();
+      }
+    };
+    
+    window.addEventListener('localStorageChange', handleLocalStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', checkSelectedDong);
+      window.removeEventListener('localStorageChange', handleLocalStorageChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (selectedDong && map && scriptLoad) {
+      drawSpecificDistrictPolygon(selectedDong);
+    } else if (activeOverlays.districts && map && scriptLoad) {
       drawDistrictPolygons();
     } else if (map) {
       clearDistrictPolygons();
     }
-  }, [activeOverlays.districts, map, scriptLoad]);
+  }, [activeOverlays.districts, map, scriptLoad, selectedDong]);
 
   useEffect(() => {
     async function fetchCCTVs() {
@@ -195,41 +226,22 @@ const KakaoMapSettings = ({ map, scriptLoad }) => {
     
     const newPolygons = [];
     
-    if (jinjuJson && jinjuJson.geometries) {
-      jinjuJson.geometries.forEach(geometry => {
-        if (geometry.type === "Polygon") {
-          geometry.coordinates.forEach(ring => {
-            const path = ring.map(coord => {
-              const x = coord[0];
-              const y = coord[1];
-              
-              const lng = (x - 1050000) / 100000 + 128.0;
-              const lat = (y - 1685000) / 100000 + 35.1;
-              
-              return new window.kakao.maps.LatLng(lat, lng);
-            });
-            
-            const polygon = new window.kakao.maps.Polygon({
-              path: path,
-              strokeWeight: 2,
-              strokeColor: '#004c80',
-              strokeOpacity: 0.8,
-              fillColor: '#004c80',
-              fillOpacity: 0.2
-            });
-            
-            polygon.setMap(map);
-            newPolygons.push(polygon);
-          });
-        }
-        else if (geometry.type === "MultiPolygon") {
-          geometry.coordinates.forEach(polygonCoords => {
+    if (jinjuFilteredJson && jinjuFilteredJson.features) {
+      const districtPolygons = new Map();
+      
+      jinjuFilteredJson.features.forEach(feature => {
+        if (feature.geometry.type === "MultiPolygon") {
+          const districtName = feature.properties.adm_nm;
+          
+          if (!districtPolygons.has(districtName)) {
+            districtPolygons.set(districtName, []);
+          }
+          
+          feature.geometry.coordinates.forEach(polygonCoords => {
             polygonCoords.forEach(ring => {
               const path = ring.map(coord => {
-                const x = coord[0];
-                const y = coord[1];
-                const lng = (x - 1050000) / 100000 + 128.0;
-                const lat = (y - 1685000) / 100000 + 35.1;
+                const lng = coord[0];
+                const lat = coord[1];
                 return new window.kakao.maps.LatLng(lat, lng);
               });
               
@@ -242,6 +254,7 @@ const KakaoMapSettings = ({ map, scriptLoad }) => {
                 fillOpacity: 0.2
               });
               
+              districtPolygons.get(districtName).push(polygon);
               polygon.setMap(map);
               newPolygons.push(polygon);
             });
@@ -251,11 +264,55 @@ const KakaoMapSettings = ({ map, scriptLoad }) => {
     }
     
     setPolygons(newPolygons);
+    toast.success('행정구역 데이터를 성공적으로 로드했습니다', { duration: 1000 });
   };
 
   const clearDistrictPolygons = () => {
     polygons.forEach(polygon => polygon.setMap(null));
     setPolygons([]);
+  };
+
+  const drawSpecificDistrictPolygon = (dongName) => {
+    if (!map || !scriptLoad || !window.kakao || !window.kakao.maps) return;
+
+    clearDistrictPolygons();
+    
+    const newPolygons = [];
+    
+    if (jinjuFilteredJson && jinjuFilteredJson.features) {
+      jinjuFilteredJson.features.forEach(feature => {
+        if (feature.geometry.type === "MultiPolygon") {
+          const districtName = feature.properties.adm_nm;
+          
+          if (districtName.includes(dongName) || dongName.includes(districtName)) {
+            feature.geometry.coordinates.forEach(polygonCoords => {
+              polygonCoords.forEach(ring => {
+                const path = ring.map(coord => {
+                  const lng = coord[0];
+                  const lat = coord[1];
+                  return new window.kakao.maps.LatLng(lat, lng);
+                });
+                
+                const polygon = new window.kakao.maps.Polygon({
+                  path: path,
+                  strokeWeight: 2,
+                  strokeColor: '#004c80',
+                  strokeOpacity: 0.8,
+                  fillColor: '#004c80',
+                  fillOpacity: 0.2
+                });
+                
+                polygon.setMap(map);
+                newPolygons.push(polygon);
+              });
+            });
+          }
+        }
+      });
+    }
+    
+    setPolygons(newPolygons);
+    toast.success(`${dongName} 행정구역을 표시했습니다`, { duration: 1000 });
   };
 
   const handleCadastralToggle = () => {
@@ -307,7 +364,26 @@ const KakaoMapSettings = ({ map, scriptLoad }) => {
   };
 
   const handleDistrictsToggle = () => {
-    setActiveOverlays(prev => ({ ...prev, districts: !prev.districts }));
+    if (activeOverlays.districts) {
+      clearDistrictPolygons();
+      setActiveOverlays(prev => ({ ...prev, districts: false }));
+    } else {
+      if (selectedDong) {
+        localStorage.removeItem('selectedDong');
+        setSelectedDong(null);
+        
+        const event = new CustomEvent('localStorageChange', {
+          detail: {
+            key: 'selectedDong',
+            value: null
+          }
+        });
+        window.dispatchEvent(event);
+        
+        drawDistrictPolygons();
+      }
+      setActiveOverlays(prev => ({ ...prev, districts: true }));
+    }
   };
 
   const handleCCTVToggle = () => {
